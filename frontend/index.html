@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ספירת מנות יום - מפעל מזון</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* התאמות מיוחדות לעברית */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        }
+        
+        /* אנימציות חלקות */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* סגנון לכפתורי + - */
+        .counter-btn {
+            transition: all 0.2s;
+        }
+        
+        .counter-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Autocomplete dropdown */
+        .autocomplete-items {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    
+    <!-- מסך התחברות -->
+    <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="text-center mb-6">
+                <!-- לוגו פיקניק מעדנים טקסטואלי -->
+                <div class="mb-4">
+                    <div class="text-5xl font-bold text-orange-600 mb-2">🍽️</div>
+                    <h1 class="text-3xl font-bold text-orange-600">פיקניק מעדנים</h1>
+                    <p class="text-sm text-orange-400">מאז 1969</p>
+                </div>
+                <p class="text-lg text-gray-700 leading-relaxed">
+                    ברוכה הבאה למערכת החכמה<br>
+                    <span class="text-base">בכדי להתחבר הקש את ססמתך</span>
+                </p>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    🔐 הזן סיסמה
+                </label>
+                <input 
+                    type="password" 
+                    id="passwordInput"
+                    placeholder="הקלד סיסמה..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                    autocomplete="off"
+                >
+                <p id="loginError" class="text-red-500 text-sm mt-2 hidden">❌ סיסמה שגויה, נסה שוב</p>
+            </div>
+            
+            <button 
+                id="loginBtn"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all"
+            >
+                כניסה
+            </button>
+            
+            <p class="text-center text-xs text-gray-500 mt-4">
+                מערכת מאובטחת - לשימוש מורשים בלבד
+            </p>
+        </div>
+    </div>
+    
+    <!-- תוכן הדף הראשי (מוסתר עד התחברות) -->
+    <div id="mainContent" class="hidden">
+    
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-md mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="text-2xl">🍽️</div>
+                <div>
+                    <h1 class="text-lg font-bold text-orange-600">פיקניק מעדנים</h1>
+                    <p class="text-xs text-gray-500">ספירת מנות יום</p>
+                </div>
+            </div>
+            <button 
+                id="logoutBtn"
+                class="text-sm text-red-600 hover:text-red-700 underline"
+            >
+                יציאה
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto px-4 py-6 pb-24">
+        
+        <!-- בחירת מנה -->
+        <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                שם מנה
+            </label>
+            <div class="relative">
+                <input 
+                    type="text" 
+                    id="dishSearch"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="חפש מנה..."
+                    autocomplete="off"
+                >
+                <!-- Autocomplete Dropdown -->
+                <div id="autocompleteDropdown" class="hidden absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 autocomplete-items">
+                </div>
+            </div>
+        </div>
+
+        <!-- פרטי המנה שנבחרה -->
+        <div id="selectedDishDetails" class="hidden fade-in">
+            
+            <!-- שם טבח וקומה -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">שם טבח</label>
+                        <p id="cookName" class="font-medium text-gray-800"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1 text-left">קומה</label>
+                        <p id="cookFloor" class="font-medium text-gray-800 text-left"></p>
+                    </div>
+                </div>
+                
+                <!-- כפתור לשינוי טבח -->
+                <button 
+                    id="changeCookBtn"
+                    class="text-sm text-blue-600 hover:text-blue-700 underline"
+                >
+                    שנה טבח
+                </button>
+            </div>
+
+            <!-- Dropdown לשינוי טבח (מוסתר בהתחלה) -->
+            <div id="cookChangeSection" class="hidden bg-white rounded-lg shadow-sm p-4 mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    בחר טבח אחר
+                </label>
+                <select 
+                    id="cookDropdown"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                </select>
+            </div>
+
+            <!-- בחירת כמות -->
+            <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-3">
+                    מנה נבחרת: <span id="selectedDishName" class="text-blue-600"></span>
+                </label>
+                
+                <!-- כמות + יחידת מידה -->
+                <div class="mb-4">
+                    <label class="text-sm font-medium text-gray-700 mb-2 block">
+                        כמות
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <button 
+                            id="decrementBtn"
+                            class="counter-btn w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold text-xl flex-shrink-0"
+                        >
+                            −
+                        </button>
+                        <input 
+                            type="number" 
+                            id="quantity"
+                            value="0"
+                            min="0"
+                            class="w-20 text-center text-2xl font-bold border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent p-2"
+                            inputmode="numeric"
+                        >
+                        <button 
+                            id="incrementBtn"
+                            class="counter-btn w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xl flex-shrink-0"
+                        >
+                            +
+                        </button>
+                        
+                        <!-- יחידת מידה -->
+                        <select 
+                            id="unitType"
+                            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-base font-medium flex-shrink-0"
+                        >
+                            <option value="יח׳" selected>יח׳</option>
+                            <option value="ק״ג">ק״ג</option>
+                            <option value="אחר">אחר</option>
+                        </select>
+                    </div>
+                    
+                    <!-- שדה טקסט חופשי ליחידת מידה אחרת (מוסתר בהתחלה) -->
+                    <div id="customUnitSection" class="hidden mt-2">
+                        <input 
+                            type="text" 
+                            id="customUnit"
+                            placeholder="הזן יחידת מידה"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                    </div>
+                </div>
+
+                <!-- הערה לטבח -->
+                <div class="mb-4">
+                    <label class="text-sm font-medium text-gray-700 mb-2 block">
+                        הערה לטבח (אופציונלי)
+                    </label>
+                    <textarea 
+                        id="noteForCook"
+                        rows="2"
+                        placeholder="למשל: בלי בצל, פחות חריף..."
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none text-sm"
+                    ></textarea>
+                </div>
+            </div>
+
+            <!-- כפתור הוספה לרשימה -->
+            <button 
+                id="addToListBtn"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg shadow-sm mb-4"
+            >
+                הוסף לרשימה
+            </button>
+        </div>
+
+        <!-- רשימת הזמנות -->
+        <div id="ordersList" class="hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-3">רשימת הזמנות</h2>
+            <div id="ordersContainer" class="space-y-2 mb-4">
+                <!-- הזמנות יתווספו כאן -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Bar - כפתור שליחה -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+        <div class="max-w-md mx-auto">
+            <button 
+                id="sendToKitchenBtn"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+                disabled
+            >
+                🚀 סגור ושלח לגיא
+            </button>
+            <p id="totalCount" class="text-center text-sm text-gray-500 mt-2">
+                סה״כ: 0 מנות
+            </p>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-700">שולח...</p>
+        </div>
+    </div>
+
+    </div><!-- סוף mainContent -->
+
+    <script>
+        // ================================================
+        // מערכת התחברות
+        // ================================================
+        
+        const CORRECT_PASSWORD = 'picnic2025';
+        const PASSWORD_KEY = 'kitchen_auth';
+        
+        // בדיקה אם המשתמש כבר התחבר
+        function checkAuth() {
+            const savedPassword = localStorage.getItem(PASSWORD_KEY);
+            if (savedPassword === CORRECT_PASSWORD) {
+                showMainContent();
+                return true;
+            }
+            return false;
+        }
+        
+        // הצגת תוכן ראשי
+        function showMainContent() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+        }
+        
+        // התחברות
+        document.getElementById('loginBtn').addEventListener('click', function() {
+            const password = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('loginError');
+            
+            if (password === CORRECT_PASSWORD) {
+                localStorage.setItem(PASSWORD_KEY, password);
+                showMainContent();
+                loadDishes(); // טעינת מנות אחרי התחברות
+            } else {
+                errorMsg.classList.remove('hidden');
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+        });
+        
+        // אפשרות להתחבר עם Enter
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginBtn').click();
+            }
+        });
+        
+        // יציאה
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('האם אתה בטוח שברצונך לצאת?')) {
+                localStorage.removeItem(PASSWORD_KEY);
+                location.reload();
+            }
+        });
+        
+        // בדיקה בטעינת הדף
+        if (!checkAuth()) {
+            document.getElementById('passwordInput').focus();
+        }
+        
+        // ================================================
+        // הגדרות ומשתנים גלובליים
+        // ================================================
+        
+        // זיהוי אוטומטי של כתובת השרת
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8001'
+            : window.location.origin;
+        
+        let allDishes = [];           // כל המנות מהשרת
+        let allCooks = [];            // כל הטבחים
+        let selectedDish = null;      // המנה שנבחרה כרגע
+        let selectedCook = null;      // הטבח שנבחר כרגע
+        let orderItems = [];          // רשימת ההזמנות
+        let todayOrderDate = new Date().toISOString().split('T')[0]; // תאריך היום
+
+        // ================================================
+        // טעינת נתונים מהשרת
+        // ================================================
+        
+        async function loadDishes() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/dishes`);
+                if (!response.ok) throw new Error('Failed to fetch dishes');
+                allDishes = await response.json();
+                console.log('✅ נטענו', allDishes.length, 'מנות');
+                
+                // שליפת רשימת טבחים מהמנות
+                allCooks = [];
+                const cookMap = new Map();
+                allDishes.forEach(dish => {
+                    if (dish.default_cook && !cookMap.has(dish.default_cook.id)) {
+                        cookMap.set(dish.default_cook.id, dish.default_cook);
+                        allCooks.push(dish.default_cook);
+                    }
+                });
+                console.log('✅ נמצאו', allCooks.length, 'טבחים');
+                
+                // טעינת הזמנת היום
+                await loadTodayOrder();
+                
+            } catch (error) {
+                console.error('❌ שגיאה בטעינת מנות:', error);
+                alert('שגיאה בטעינת נתונים. וודא שהשרת רץ על http://localhost:8001');
+            }
+        }
+        
+        async function loadTodayOrder() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/today-order?date=${todayOrderDate}`);
+                if (!response.ok) return; // אין הזמנות להיום - זה בסדר
+                
+                const data = await response.json();
+                
+                if (data.items && data.items.length > 0) {
+                    console.log('📋 נמצאה הזמנה קיימת:', data.items.length, 'פריטים');
+                    
+                    // המרת ההזמנות לפורמט המקומי
+                    orderItems = data.items.map(item => ({
+                        id: item.id,  // שמירת ה-ID למחיקה/עדכון
+                        dish_id: item.dish.id,
+                        dish_name: item.dish.name,
+                        assigned_cook_id: item.assigned_cook.id,
+                        cook_name: item.assigned_cook.name,
+                        cook_floor: item.assigned_cook.floor,
+                        quantity: item.quantity,
+                        unit: 'יח׳',  // ברירת מחדל
+                        note: item.notes || ''
+                    }));
+                    
+                    updateOrdersList();
+                    
+                    // הצגת הודעה
+                    alert(`📋 נמצאה הזמנה קיימת מהיום!\nסה"כ ${data.items.length} פריטים\n\nניתן להוסיף מנות או לערוך את ההזמנה`);
+                }
+            } catch (error) {
+                console.error('❌ שגיאה בטעינת הזמנת היום:', error);
+                // לא נציג שגיאה - אולי פשוט אין הזמנות
+            }
+        }
+
+        // ================================================
+        // Autocomplete - חיפוש מנות
+        // ================================================
+        
+        const dishSearch = document.getElementById('dishSearch');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        
+        dishSearch.addEventListener('input', function() {
+            const searchText = this.value.trim();
+            
+            if (searchText.length === 0) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+            
+            // סינון מנות - רק מנות שמתחילות עם טקסט החיפוש
+            const filtered = allDishes.filter(dish => 
+                dish.name.startsWith(searchText)
+            );
+            
+            if (filtered.length === 0) {
+                autocompleteDropdown.classList.add('hidden');
+                return;
+            }
+            
+            // הצגת תוצאות
+            autocompleteDropdown.innerHTML = filtered.map(dish => `
+                <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                     onclick="selectDish('${dish.id}')">
+                    <p class="font-medium text-gray-800">${dish.name}</p>
+                    <p class="text-sm text-gray-500">${dish.category || ''}</p>
+                </div>
+            `).join('');
+            
+            autocompleteDropdown.classList.remove('hidden');
+        });
+
+        // ================================================
+        // בחירת מנה
+        // ================================================
+        
+        function selectDish(dishId) {
+            selectedDish = allDishes.find(d => d.id === dishId);
+            if (!selectedDish) return;
+            
+            // עדכון UI
+            dishSearch.value = selectedDish.name;
+            autocompleteDropdown.classList.add('hidden');
+            
+            // הצגת פרטי המנה
+            document.getElementById('selectedDishDetails').classList.remove('hidden');
+            document.getElementById('selectedDishName').textContent = selectedDish.name;
+            
+            // הצגת טבח ברירת מחדל
+            if (selectedDish.default_cook) {
+                selectedCook = selectedDish.default_cook;
+                updateCookDisplay();
+                populateCookDropdown();
+            }
+            
+            // איפוס כמות
+            document.getElementById('quantity').value = 0;
+        }
+
+        // ================================================
+        // עדכון תצוגת הטבח
+        // ================================================
+        
+        function updateCookDisplay() {
+            if (!selectedCook) return;
+            
+            document.getElementById('cookName').textContent = selectedCook.name;
+            document.getElementById('cookFloor').textContent = selectedCook.floor || '-';
+        }
+
+        // ================================================
+        // מילוי Dropdown של טבחים
+        // ================================================
+        
+        function populateCookDropdown() {
+            const dropdown = document.getElementById('cookDropdown');
+            dropdown.innerHTML = allCooks.map(cook => `
+                <option value="${cook.id}" ${cook.id === selectedCook?.id ? 'selected' : ''}>
+                    ${cook.name} (קומה ${cook.floor || '-'})
+                </option>
+            `).join('');
+        }
+
+        // ================================================
+        // כפתור שינוי טבח
+        // ================================================
+        
+        document.getElementById('changeCookBtn').addEventListener('click', function() {
+            const section = document.getElementById('cookChangeSection');
+            section.classList.toggle('hidden');
+        });
+        
+        document.getElementById('cookDropdown').addEventListener('change', function() {
+            const cookId = this.value;
+            selectedCook = allCooks.find(c => c.id === cookId);
+            updateCookDisplay();
+            document.getElementById('cookChangeSection').classList.add('hidden');
+        });
+
+        // ================================================
+        // כפתורי +/- לכמות
+        // ================================================
+        
+        const quantityInput = document.getElementById('quantity');
+        
+        document.getElementById('incrementBtn').addEventListener('click', function() {
+            let current = parseInt(quantityInput.value) || 0;
+            quantityInput.value = current + 1;
+        });
+        
+        document.getElementById('decrementBtn').addEventListener('click', function() {
+            let current = parseInt(quantityInput.value) || 0;
+            if (current > 0) {
+                quantityInput.value = current - 1;
+            }
+        });
+
+        // ================================================
+        // יחידת מידה - הצגת שדה חופשי ל"אחר"
+        // ================================================
+        
+        document.getElementById('unitType').addEventListener('change', function() {
+            const customSection = document.getElementById('customUnitSection');
+            if (this.value === 'אחר') {
+                customSection.classList.remove('hidden');
+            } else {
+                customSection.classList.add('hidden');
+                document.getElementById('customUnit').value = '';
+            }
+        });
+
+        // ================================================
+        // הוספה לרשימת הזמנות (שמירה בשרת)
+        // ================================================
+        
+        document.getElementById('addToListBtn').addEventListener('click', async function() {
+            const quantity = parseInt(quantityInput.value) || 0;
+            
+            if (quantity === 0) {
+                alert('יש לבחור כמות');
+                return;
+            }
+            
+            if (!selectedDish || !selectedCook) {
+                alert('חסרים פרטים');
+                return;
+            }
+            
+            // קבלת יחידת מידה
+            const unitType = document.getElementById('unitType').value;
+            let unit = unitType;
+            if (unitType === 'אחר') {
+                unit = document.getElementById('customUnit').value.trim();
+                if (!unit) {
+                    alert('יש להזין יחידת מידה');
+                    return;
+                }
+            }
+            
+            // קבלת הערה
+            const note = document.getElementById('noteForCook').value.trim();
+            
+            // שליחה לשרת
+            try {
+                document.getElementById('loadingSpinner').classList.remove('hidden');
+                
+                const response = await fetch(`${API_BASE_URL}/add-to-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        order_date: todayOrderDate,
+                        dish_id: selectedDish.id,
+                        quantity: quantity,
+                        unit: unit,
+                        notes: note,
+                        assigned_cook_id: selectedCook.id
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'שגיאה בהוספה');
+                }
+                
+                const result = await response.json();
+                console.log('✅ מנה נוספה:', result);
+                
+                // הוספה לרשימה המקומית
+                orderItems.push({
+                    id: result.data.id,  // שמירת ה-ID
+                    dish_id: selectedDish.id,
+                    dish_name: selectedDish.name,
+                    assigned_cook_id: selectedCook.id,
+                    cook_name: selectedCook.name,
+                    cook_floor: selectedCook.floor,
+                    quantity: quantity,
+                    unit: unit,
+                    note: note
+                });
+                
+                // עדכון תצוגה
+                updateOrdersList();
+                
+                // איפוס
+                resetForm();
+                
+                alert('✅ המנה נוספה להזמנת היום!');
+                
+            } catch (error) {
+                console.error('❌ שגיאה:', error);
+                alert('❌ שגיאה בהוספת מנה: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        });
+
+        // ================================================
+        // עדכון רשימת הזמנות
+        // ================================================
+        
+        function updateOrdersList() {
+            const container = document.getElementById('ordersContainer');
+            const listSection = document.getElementById('ordersList');
+            const sendBtn = document.getElementById('sendToKitchenBtn');
+            const totalCount = document.getElementById('totalCount');
+            
+            if (orderItems.length === 0) {
+                listSection.classList.add('hidden');
+                sendBtn.disabled = true;
+                totalCount.textContent = 'סה״כ: 0 מנות';
+                return;
+            }
+            
+            listSection.classList.remove('hidden');
+            sendBtn.disabled = false;
+            
+            // חישוב סה"כ
+            const total = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+            totalCount.textContent = `סה״כ: ${total} מנות`;
+            
+            // הצגת רשימה
+            container.innerHTML = orderItems.map((item, index) => `
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-800">${item.dish_name}</p>
+                            <p class="text-sm text-gray-500">טבח: ${item.cook_name} (קומה ${item.cook_floor})</p>
+                            <p class="text-sm font-medium text-blue-600">כמות: ${item.quantity} ${item.unit}</p>
+                            ${item.note ? `<p class="text-sm text-orange-600 mt-1">💬 ${item.note}</p>` : ''}
+                        </div>
+                        <button 
+                            onclick="removeOrder(${index})"
+                            class="text-red-500 hover:text-red-700 p-1"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ================================================
+        // הסרת הזמנה
+        // ================================================
+        
+        async function removeOrder(index) {
+            const item = orderItems[index];
+            
+            if (!item.id) {
+                // פריט שטרם נשמר בשרת - מחיקה מקומית בלבד
+                orderItems.splice(index, 1);
+                updateOrdersList();
+                return;
+            }
+            
+            if (!confirm(`האם למחוק את ${item.dish_name}?`)) {
+                return;
+            }
+            
+            try {
+                document.getElementById('loadingSpinner').classList.remove('hidden');
+                
+                const response = await fetch(`${API_BASE_URL}/order-item/${item.id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('שגיאה במחיקה');
+                }
+                
+                console.log('✅ פריט נמחק');
+                
+                // מחיקה מקומית
+                orderItems.splice(index, 1);
+                updateOrdersList();
+                
+            } catch (error) {
+                console.error('❌ שגיאה במחיקה:', error);
+                alert('❌ שגיאה במחיקת הפריט');
+            } finally {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        }
+
+        // ================================================
+        // איפוס טופס
+        // ================================================
+        
+        function resetForm() {
+            dishSearch.value = '';
+            selectedDish = null;
+            selectedCook = null;
+            document.getElementById('selectedDishDetails').classList.add('hidden');
+            document.getElementById('cookChangeSection').classList.add('hidden');
+            document.getElementById('quantity').value = 0;
+            document.getElementById('unitType').value = 'יח׳';
+            document.getElementById('customUnit').value = '';
+            document.getElementById('customUnitSection').classList.add('hidden');
+            document.getElementById('noteForCook').value = '';
+        }
+
+        // ================================================
+        // סגירה ושליחה לגיא - POST /finalize-order
+        // ================================================
+        
+        document.getElementById('sendToKitchenBtn').addEventListener('click', async function() {
+            if (orderItems.length === 0) return;
+            
+            const confirmMsg = `🚀 האם לסגור את הזמנת היום ולשלוח לגיא?\n\nסה"כ ${orderItems.length} פריטים\n\n⚠️ לאחר השליחה לא ניתן לערוך!`;
+            
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            console.log('📤 סוגר ושולח הזמנה');
+            
+            // הצגת loading
+            document.getElementById('loadingSpinner').classList.remove('hidden');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/finalize-order?order_date=${todayOrderDate}`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'שגיאה בשליחה');
+                }
+                
+                const result = await response.json();
+                console.log('✅ הזמנה נשלחה:', result);
+                
+                // הצלחה!
+                alert('✅ ההזמנה נסגרה ונשלחה לגיא בהצלחה!\n\n' + result.message);
+                
+                // איפוס
+                orderItems = [];
+                updateOrdersList();
+                resetForm();
+                
+            } catch (error) {
+                console.error('❌ שגיאה:', error);
+                alert('❌ שגיאה בשליחת הזמנה: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').classList.add('hidden');
+            }
+        });
+
+        // ================================================
+        // טעינה ראשונית
+        // ================================================
+        
+        window.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 מפעיל אפליקציה...');
+            // טעינת מנות רק אם המשתמש מחובר
+            if (localStorage.getItem(PASSWORD_KEY) === CORRECT_PASSWORD) {
+                await loadDishes();
+                console.log('✅ מוכן!');
+            }
+        });
+    </script>
+</body>
+</html>

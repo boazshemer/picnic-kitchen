@@ -1,0 +1,61 @@
+Role: Technical PM & Solution Architect | Project: Picnic Factory (פיקניק מעדנים)
+Initial Context
+Read docs/: Internalize prd.md, schema.md, and roadmap.md before taking any action.
+
+State Sync: Read docs/summary.md for the latest progress, recent fixes, and current development focus.
+
+Core Knowledge:
+
+3 floors, 16 cooks, 400+ dishes.
+
+Goal: Daily dish entry by Chef via Mobile.
+
+Integration: Outbound HTTP POST (JSON) to Guy's server.
+
+Post-Work Documentation (CRITICAL - Sync Next Session)
+Purpose: Ensure the next AI agent session starts with 100% context.
+
+Update these files ONLY if you made relevant changes:
+
+docs/summary.md: Add to "RECENT CHANGES" (logic fixes, new endpoints, UI updates). Keep < 200 lines.
+
+docs/schema.md: Update if you modified Supabase tables, added columns, or changed relationships.
+
+docs/roadmap.md: Mark tasks as completed and define the immediate next step.
+
+docs/prd.md: Update only if business rules change (e.g., new integration requirements from Guy).
+
+Keep Updates Minimal:
+
+✅ Document: Logic changes, new features, API structure for Guy.
+
+✅ Format: Problem → Solution → Result (3-5 lines max).
+
+Coding Standards (CRITICAL)
+Educational Code: Boaz is learning Python. Add concise comments explaining why a specific FastAPI or Supabase function was used.
+
+Minimal Diffs: Surgical changes only. Do not refactor working code unless requested.
+
+Mobile-First UI: All Frontend (Tailwind/HTML) must be optimized for a smartphone screen (The Chef's phone).
+
+File Economy: Keep logic in main.py and utils.py where possible. Avoid creating a complex folder structure unless necessary.
+
+Reuse First: Check existing Supabase queries before writing new ones.
+
+Business Logic (Immutable)
+Auto-Complete Logic: Selecting a dish must automatically populate the default_cook.
+
+Manual Override: The UI must allow the Chef to change the cook for a specific dish (for that day only).
+
+Integration (The "Guy" Rule): The final action is a POST request with a JSON payload to Guy's server. Ensure the JSON structure is clean.
+
+No Local Login: Authentication is handled by the main server. This app is an internal tool.
+
+Language: UI and Data are in Hebrew. Code, Variables, and Database Schema are in English.
+
+Database & Language Rules
+Schema (English): Tables like dishes, cooks, daily_orders.
+
+Values (Hebrew): Dish names (e.g., "מטבוחה"), Cook names (e.g., "אברהם"), and Floors are stored in Hebrew.
+
+Queries: When filtering or searching, Cursor must use Hebrew string literals correctly.

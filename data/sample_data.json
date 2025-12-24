@@ -1,0 +1,80 @@
+{
+  "cooks": [
+    {
+      "name": "משה כהן",
+      "floor": 1,
+      "email": "moshe@factory.com",
+      "phone": "050-1234567",
+      "specialty": "בשרי",
+      "is_active": true
+    },
+    {
+      "name": "שרה לוי",
+      "floor": 1,
+      "email": "sarah@factory.com",
+      "phone": "050-2345678",
+      "specialty": "חלבי",
+      "is_active": true
+    },
+    {
+      "name": "דוד ישראלי",
+      "floor": 2,
+      "email": "david@factory.com",
+      "phone": "050-3456789",
+      "specialty": "אפייה",
+      "is_active": true
+    },
+    {
+      "name": "רחל אברהם",
+      "floor": 2,
+      "email": "rachel@factory.com",
+      "phone": "050-4567890",
+      "specialty": "סלטים",
+      "is_active": true
+    }
+  ],
+  "dishes": [
+    {
+      "name": "שניצל",
+      "description": "שניצל עוף פריך ומשובח",
+      "category": "עיקרית",
+      "default_cook_name": "משה כהן",
+      "preparation_time": 30,
+      "is_active": true
+    },
+    {
+      "name": "פסטה ברוטב עגבניות",
+      "description": "פסטה איטלקית עם רוטב עגבניות ביתי",
+      "category": "עיקרית",
+      "default_cook_name": "שרה לוי",
+      "preparation_time": 25,
+      "is_active": true
+    },
+    {
+      "name": "לחם ביתי",
+      "description": "לחם טרי ואוורירי",
+      "category": "תוספת",
+      "default_cook_name": "דוד ישראלי",
+      "preparation_time": 120,
+      "is_active": true
+    },
+    {
+      "name": "סלט ישראלי",
+      "description": "סלט ירקות טרי",
+      "category": "תוספת",
+      "default_cook_name": "רחל אברהם",
+      "preparation_time": 15,
+      "is_active": true
+    },
+    {
+      "name": "עוגת שוקולד",
+      "description": "עוגה עשירה ומפנקת",
+      "category": "קינוח",
+      "default_cook_name": "דוד ישראלי",
+      "preparation_time": 60,
+      "is_active": true
+    }
+  ]
+}
+
+
