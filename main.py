@@ -596,3 +596,4 @@ if __name__ == "__main__":
         port=settings.port,
         reload=settings.debug,  # reload אוטומטי בפיתוח
         log_level=settings.log_level.lower()
+    )
