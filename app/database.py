@@ -109,6 +109,7 @@ async def get_all_dishes_with_cooks():
     - מטבלת cooks
     - עם כל השדות שלו (*)
     """
+    logger.info("📋 מבקש רשימת מנות מ-Supabase")
     supabase = get_supabase()
     
     try:
@@ -116,35 +117,46 @@ async def get_all_dishes_with_cooks():
             '*, default_cook:cooks!dishes_default_cook_id_fkey(*)'
         ).eq('is_active', True).execute()
         
+        logger.info(f"✅ נמצאו {len(response.data)} מנות פעילות")
         return response.data
     except Exception as e:
-        logger.error(f"שגיאה בשליפת מנות: {e}")
+        logger.error(f"❌ שגיאה בשליפת מנות מ-Supabase: {e}", exc_info=True)
         raise
 
 
 async def get_cook_by_id(cook_id: str):
     """מחזיר טבח לפי ID"""
+    logger.debug(f"🔍 מחפש טבח: {cook_id}")
     supabase = get_supabase()
     
     try:
         response = supabase.table('cooks').select('*').eq('id', cook_id).single().execute()
+        if response.data:
+            logger.debug(f"✅ נמצא טבח: {response.data.get('name', 'לא ידוע')}")
+        else:
+            logger.warning(f"⚠️ טבח {cook_id} לא נמצא")
         return response.data
     except Exception as e:
-        logger.error(f"שגיאה בשליפת טבח {cook_id}: {e}")
+        logger.error(f"❌ שגיאה בשליפת טבח {cook_id}: {e}", exc_info=True)
         return None
 
 
 async def get_dish_by_id(dish_id: str):
     """מחזיר מנה לפי ID (עם פרטי הטבח)"""
+    logger.debug(f"🔍 מחפש מנה: {dish_id}")
     supabase = get_supabase()
     
     try:
         response = supabase.table('dishes').select(
             '*, default_cook:cooks!dishes_default_cook_id_fkey(*)'
         ).eq('id', dish_id).single().execute()
+        if response.data:
+            logger.debug(f"✅ נמצאה מנה: {response.data.get('name', 'לא ידוע')}")
+        else:
+            logger.warning(f"⚠️ מנה {dish_id} לא נמצאה")
         return response.data
     except Exception as e:
-        logger.error(f"שגיאה בשליפת מנה {dish_id}: {e}")
+        logger.error(f"❌ שגיאה בשליפת מנה {dish_id}: {e}", exc_info=True)
         return None
 
 
@@ -163,13 +175,17 @@ async def create_daily_order(order_data: dict):
     
     מחזיר את ההזמנה שנוצרה (כולל ID)
     """
+    logger.info(f"➕ יוצר הזמנה יומית: מנה {order_data.get('dish_id')} × {order_data.get('quantity')}")
     supabase = get_supabase()
     
     try:
         response = supabase.table('daily_orders').insert(order_data).execute()
-        return response.data[0] if response.data else None
+        created = response.data[0] if response.data else None
+        if created:
+            logger.info(f"✅ הזמנה נוצרה בהצלחה: ID {created.get('id')}")
+        return created
     except Exception as e:
-        logger.error(f"שגיאה ביצירת הזמנה: {e}")
+        logger.error(f"❌ שגיאה ביצירת הזמנה: {e}", exc_info=True)
         raise
 
 
@@ -184,13 +200,16 @@ async def log_external_sync(log_data: dict):
     - מה קיבלנו בחזרה
     - האם הצליח או נכשל
     """
+    logger.debug(f"📝 שומר לוג סנכרון: {log_data.get('sync_status', 'unknown')}")
     supabase = get_supabase()
     
     try:
         response = supabase.table('external_sync_log').insert(log_data).execute()
+        if response.data:
+            logger.debug(f"✅ לוג סנכרון נשמר בהצלחה")
         return response.data[0] if response.data else None
     except Exception as e:
-        logger.error(f"שגיאה בשמירת לוג סנכרון: {e}")
+        logger.error(f"❌ שגיאה בשמירת לוג סנכרון: {e}", exc_info=True)
         # לא נזרוק exception - הלוג הוא משני, לא נרצה לעצור את התהליך
         return None
 
@@ -207,6 +226,7 @@ async def get_today_orders(order_date: str):
     ------
     כולל את פרטי המנה והטבח המשויך
     """
+    logger.info(f"📅 מבקש הזמנות ליום {order_date}")
     supabase = get_supabase()
     
     try:
@@ -214,9 +234,10 @@ async def get_today_orders(order_date: str):
             '*, dish:dishes(id, name, category), assigned_cook:cooks(id, name, floor)'
         ).eq('order_date', order_date).execute()
         
+        logger.info(f"✅ נמצאו {len(response.data)} פריטים בהזמנת {order_date}")
         return response.data
     except Exception as e:
-        logger.error(f"שגיאה בשליפת הזמנות של {order_date}: {e}")
+        logger.error(f"❌ שגיאה בשליפת הזמנות של {order_date}: {e}", exc_info=True)
         raise
 
 
@@ -228,6 +249,7 @@ async def update_order_item(order_id: str, update_data: dict):
     ------
     מאפשר לשנות כמות, הערות, וכו'
     """
+    logger.info(f"✏️ מעדכן פריט {order_id}: {list(update_data.keys())}")
     supabase = get_supabase()
     
     try:
@@ -235,9 +257,12 @@ async def update_order_item(order_id: str, update_data: dict):
             update_data
         ).eq('id', order_id).execute()
         
-        return response.data[0] if response.data else None
+        updated = response.data[0] if response.data else None
+        if updated:
+            logger.info(f"✅ פריט {order_id} עודכן בהצלחה")
+        return updated
     except Exception as e:
-        logger.error(f"שגיאה בעדכון הזמנה {order_id}: {e}")
+        logger.error(f"❌ שגיאה בעדכון הזמנה {order_id}: {e}", exc_info=True)
         raise
 
 
@@ -249,13 +274,15 @@ async def delete_order_item(order_id: str):
     ------
     למקרה שהשפית רוצה להסיר מנה
     """
+    logger.info(f"🗑️ מוחק פריט {order_id}")
     supabase = get_supabase()
     
     try:
         response = supabase.table('daily_orders').delete().eq('id', order_id).execute()
+        logger.info(f"✅ פריט {order_id} נמחק בהצלחה")
         return True
     except Exception as e:
-        logger.error(f"שגיאה במחיקת הזמנה {order_id}: {e}")
+        logger.error(f"❌ שגיאה במחיקת הזמנה {order_id}: {e}", exc_info=True)
         raise
 
 
@@ -268,6 +295,7 @@ async def upsert_daily_order(order_data: dict):
     אם יש כבר הזמנה לאותו תאריך ומנה - מעדכן את הכמות
     אם לא - יוצר חדש
     """
+    logger.info(f"🔄 Upsert הזמנה: {order_data.get('dish_id')} ב-{order_data.get('order_date')}")
     supabase = get_supabase()
     
     try:
@@ -279,16 +307,20 @@ async def upsert_daily_order(order_data: dict):
         if existing.data:
             # עדכון הכמות (מוסיף לכמות הקיימת)
             order_id = existing.data[0]['id']
-            new_quantity = existing.data[0]['quantity'] + order_data['quantity']
+            old_quantity = existing.data[0]['quantity']
+            new_quantity = old_quantity + order_data['quantity']
+            logger.info(f"📝 מעדכן הזמנה קיימת: כמות {old_quantity} → {new_quantity}")
             
             response = supabase.table('daily_orders').update({
                 'quantity': new_quantity,
                 'notes': order_data.get('notes')
             }).eq('id', order_id).execute()
             
+            logger.info(f"✅ הזמנה עודכנה בהצלחה")
             return response.data[0] if response.data else None
         else:
             # יצירה חדשה
+            logger.info(f"➕ יוצר הזמנה חדשה")
             return await create_daily_order(order_data)
             
     except Exception as e:

@@ -39,6 +39,8 @@ class ExternalAPIClient:
         
         # timeout = כמה זמן לחכות לתשובה (30 שניות)
         self.timeout = 30.0
+        
+        logger.info(f"🔗 External API Client initialized: {self.base_url or 'לא הוגדר'}")
     
     async def send_order(self, payload: ExternalOrderPayload) -> Dict[str, Any]:
         """

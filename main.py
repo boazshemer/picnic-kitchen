@@ -124,10 +124,12 @@ async def root():
     """
     מחזיר את ממשק המשתמש (Frontend)
     """
+    logger.debug("🏠 בקשה לדף הבית")
     index_path = frontend_path / "index.html"
     if index_path.exists():
         return FileResponse(str(index_path))
     else:
+        logger.warning("⚠️ index.html לא נמצא, מחזיר JSON")
         return {
             "message": "🍽️ ברוך הבא למערכת ניהול משימות מפעל מזון",
             "version": settings.app_version,
@@ -143,12 +145,20 @@ async def health_check():
     
     שימושי כדי לבדוק שהשרת והשירותים עובדים
     """
-    return {
+    logger.debug("💚 Health check requested")
+    health_status = {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "supabase_configured": bool(settings.supabase_url and settings.supabase_key),
         "external_api_configured": bool(settings.external_api_url)
     }
+    
+    if not health_status["supabase_configured"]:
+        logger.warning("⚠️ Supabase לא מוגדר!")
+    if not health_status["external_api_configured"]:
+        logger.warning("⚠️ External API לא מוגדר!")
+    
+    return health_status
 
 
 # ====================================
@@ -387,17 +397,23 @@ async def add_to_order(request: AddToOrderRequest):
         dish = await get_dish_by_id(request.dish_id)
         
         if not dish:
+            logger.warning(f"⚠️ מנה לא נמצאה: {request.dish_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"מנה לא נמצאה: {request.dish_id}"
             )
         
+        logger.debug(f"📋 מנה נמצאה: {dish.get('name')}")
+        
         # קביעת טבח
         if request.assigned_cook_id:
             cook_id = request.assigned_cook_id
+            logger.debug(f"👨‍🍳 טבח נבחר ידנית: {cook_id}")
         elif dish.get('default_cook_id'):
             cook_id = dish['default_cook_id']
+            logger.debug(f"👨‍🍳 משתמש בטבח ברירת מחדל: {cook_id}")
         else:
+            logger.error(f"❌ למנה '{dish['name']}' אין טבח ברירת מחדל")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"למנה '{dish['name']}' אין טבח ברירת מחדל"
@@ -467,6 +483,7 @@ async def finalize_order(order_date: str):
         orders = await get_today_orders(order_date)
         
         if not orders:
+            logger.warning(f"⚠️ לא נמצאו הזמנות ליום {order_date}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"לא נמצאו הזמנות ליום {order_date}"
@@ -475,6 +492,7 @@ async def finalize_order(order_date: str):
         logger.info(f"   נמצאו {len(orders)} פריטים")
         
         # הכנת הנתונים לשליחה לגיא
+        logger.debug("📦 מכין payload לשליחה")
         external_items = []
         total_dishes = 0
         
@@ -510,6 +528,7 @@ async def finalize_order(order_date: str):
         
         # עדכון סטטוס ההזמנות
         new_status = 'completed' if sync_result.get('success') else 'cancelled'
+        logger.info(f"📝 מעדכן סטטוס הזמנות ל-{new_status}")
         
         for order in orders:
             await update_order_item(order['id'], {'status': new_status})
